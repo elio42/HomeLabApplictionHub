@@ -12,6 +12,7 @@ model Tile {
   title       String
   url         String
   icon        String?
+  iconSourceUrl String? // original remote URL (if provided) for reference
   category    String?
   description String?
   target      String?

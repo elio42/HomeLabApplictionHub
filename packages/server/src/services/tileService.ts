@@ -2,6 +2,38 @@ import { prisma } from "../db/prismaClient";
 import { TileCreateInput, TileUpdateInput } from "../utils/validation";
 import { fetchFaviconBase64 } from "../utils/favicon";
 import { sanitizeDataUrl } from "../utils/image";
+import { request } from "undici";
+
+async function fetchRemoteImageBase64(
+  url: string
+): Promise<string | undefined> {
+  try {
+    const res = await request(url, { method: "GET" });
+    if (res.statusCode >= 400) return undefined;
+    const ctHeader = res.headers["content-type"];
+    if (!ctHeader) return undefined;
+    const singleCt = Array.isArray(ctHeader) ? ctHeader[0] : ctHeader;
+    if (!singleCt.startsWith("image/")) {
+      return undefined; // not an image -> trigger favicon fallback
+    }
+    const maxBytes = 200 * 1024; // reuse same limit
+    const chunks: Buffer[] = [];
+    let total = 0;
+    for await (const chunk of res.body as any as AsyncIterable<Buffer>) {
+      total += chunk.length;
+      if (total > maxBytes) {
+        return undefined; // oversize -> fallback
+      }
+      chunks.push(chunk);
+    }
+    const buf = Buffer.concat(chunks);
+    const b64 = buf.toString("base64");
+    const mime = singleCt;
+    return `data:${mime};base64,${b64}`;
+  } catch {
+    return undefined;
+  }
+}
 
 export async function listTiles() {
   return prisma.tile.findMany({ orderBy: { order: "asc" } });
@@ -17,28 +49,47 @@ export async function createTile(data: TileCreateInput) {
   const nextOrder = (max._max.order ?? 0) + 1;
 
   let icon = data.icon;
+  let iconSourceUrl = data.iconSourceUrl;
+
+  // If user supplied an upload (data URL) sanitize
   if (icon?.startsWith("data:")) {
     icon = (await sanitizeDataUrl(icon)) || undefined;
+  } else if (!icon && iconSourceUrl) {
+    // Try downloading remote image URL
+    const downloaded = await fetchRemoteImageBase64(iconSourceUrl);
+    if (downloaded) {
+      icon = (await sanitizeDataUrl(downloaded)) || undefined;
+    }
   }
+
   if (!icon) {
+    // Fallback to favicon
     icon = (await fetchFaviconBase64(data.url)) || undefined;
   }
 
-  return prisma.tile.create({ data: { ...data, icon, order: nextOrder } });
+  return prisma.tile.create({
+    data: { ...data, icon, iconSourceUrl, order: nextOrder },
+  });
 }
 
 export async function updateTile(id: string, data: TileUpdateInput) {
-  let newData = { ...data } as TileUpdateInput;
+  let newData: TileUpdateInput & { iconSourceUrl?: string } = { ...data };
   if (newData.icon?.startsWith("data:")) {
     newData.icon = (await sanitizeDataUrl(newData.icon)) || undefined;
-  }
-  if (data.url) {
-    // If URL changed, attempt to refresh icon only if none provided explicitly
-    if (!data.icon) {
-      const icon = await fetchFaviconBase64(data.url);
-      if (icon) newData.icon = icon;
+  } else if (!newData.icon && newData.iconSourceUrl) {
+    // attempt remote download
+    const downloaded = await fetchRemoteImageBase64(newData.iconSourceUrl);
+    if (downloaded) {
+      newData.icon = (await sanitizeDataUrl(downloaded)) || undefined;
     }
   }
+
+  if (!newData.icon && data.url) {
+    // Final fallback to favicon
+    const fav = await fetchFaviconBase64(data.url);
+    if (fav) newData.icon = fav;
+  }
+
   return prisma.tile.update({ where: { id }, data: newData });
 }
 

@@ -20,6 +20,12 @@ interface IconPickerProps {
   onModeChange: (mode: IconMode) => void;
   value: string; // icon string (data URL or external URL)
   onChange: (value: string) => void;
+  onPreview?: (args: {
+    iconUrl?: string;
+    uploadedIcon?: string;
+  }) => Promise<string | undefined>;
+  previewing?: boolean;
+  previewValue?: string; // resolved preview (data URL) separate from raw value
   titleForFallback: string; // used to render first letter when no/invalid icon
   maxKB?: number; // default 200KB
 }
@@ -40,6 +46,9 @@ export function IconPicker({
   onModeChange,
   value,
   onChange,
+  onPreview,
+  previewing,
+  previewValue,
   titleForFallback,
   maxKB = 200,
 }: IconPickerProps) {
@@ -112,7 +121,6 @@ export function IconPicker({
           const next = e.target.value as IconMode;
           onModeChange(next);
           if (next === "upload" && value && !isDataUrl(value)) {
-            // switching from URL -> upload, clear URL so fallback applies
             onChange("");
           }
         }}
@@ -123,35 +131,57 @@ export function IconPicker({
       </TextField>
 
       {mode === "url" && (
-        <TextField
-          label="Icon URL (optional)"
-          value={!isDataUrl(value) ? value : ""}
-          onChange={(e) => onChange(e.target.value)}
-          fullWidth
-          error={invalidIconUrl}
-          helperText={
-            invalidIconUrl
-              ? "Invalid image URL - fallback will apply"
-              : "Provide direct image URL or leave blank for favicon/letter"
-          }
-        />
+        <Stack spacing={1}>
+          <TextField
+            label="Icon URL (optional)"
+            value={!isDataUrl(value) ? value : ""}
+            onChange={(e) => onChange(e.target.value)}
+            fullWidth
+            error={invalidIconUrl}
+            helperText={
+              invalidIconUrl
+                ? "Invalid image URL - fallback will apply"
+                : previewValue
+                ? "Preview loaded"
+                : "Enter direct image URL or leave blank for favicon"
+            }
+          />
+          {onPreview && (
+            <Stack direction="row" spacing={1}>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() =>
+                  onPreview({ iconUrl: !isDataUrl(value) ? value : undefined })
+                }
+                disabled={previewing || !value}
+              >
+                {previewing
+                  ? "Fetching..."
+                  : previewValue
+                  ? "Refetch"
+                  : "Fetch Preview"}
+              </Button>
+            </Stack>
+          )}
+        </Stack>
       )}
 
       <Stack direction="row" alignItems="center" gap={2}>
         <Avatar variant="rounded" sx={{ width: 56, height: 56 }}>
-          {value ? (
-            isDataUrl(value) ? (
-              <img
-                src={value}
-                alt="icon"
-                style={{ width: "100%", height: "100%" }}
-              />
-            ) : (
-              (titleForFallback || "?")[0]
-            )
-          ) : (
-            (titleForFallback || "?")[0]
-          )}
+          {(() => {
+            const shown = previewValue || value;
+            if (shown && isDataUrl(shown)) {
+              return (
+                <img
+                  src={shown}
+                  alt="icon"
+                  style={{ width: "100%", height: "100%" }}
+                />
+              );
+            }
+            return (titleForFallback || "?")[0];
+          })()}
         </Avatar>
 
         {mode === "upload" && (

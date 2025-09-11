@@ -6,6 +6,7 @@ import {
   deleteTile,
   reorderTiles,
   refreshTileIcon,
+  previewIcon,
   CreateTileInput,
   UpdateTileInput,
 } from "../api/tiles";
@@ -76,6 +77,12 @@ export function useRefreshTileIcon() {
   return useMutation({
     mutationFn: (id: string) => refreshTileIcon(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tiles"] }),
+  });
+}
+
+export function usePreviewIcon() {
+  return useMutation({
+    mutationFn: previewIcon,
   });
 }
 

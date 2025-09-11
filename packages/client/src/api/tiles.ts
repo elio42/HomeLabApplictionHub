@@ -10,6 +10,7 @@ export interface CreateTileInput {
   title: string;
   url: string;
   icon?: string;
+  iconSourceUrl?: string;
   category?: string;
   description?: string;
   target?: "_blank" | "_self";
@@ -43,4 +44,15 @@ export async function reorderTiles(ids: string[]): Promise<Tile[]> {
 export async function refreshTileIcon(id: string): Promise<Tile> {
   const res = await api.put<{ tile: Tile }>(`/tiles/${id}/refresh-icon`, {});
   return res.data.tile;
+}
+
+export interface PreviewIconRequest {
+  url?: string; // target tile URL (for favicon fallback)
+  iconSourceUrl?: string; // direct image URL
+  uploadedIcon?: string; // data URL
+}
+
+export async function previewIcon(req: PreviewIconRequest): Promise<string | undefined> {
+  const res = await api.post<{ icon?: string }>(`/tiles/preview-icon`, req);
+  return res.data.icon;
 }

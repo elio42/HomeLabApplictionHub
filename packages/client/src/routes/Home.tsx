@@ -141,7 +141,6 @@ export default function Home() {
         onClose={() => setEditTile(null)}
         onSubmit={handleEditSave}
         tile={editTile ?? undefined}
-        onRefreshIcon={(id) => !offline && refreshIconMutation.mutate(id)}
       />
       <ConfirmDialog
         open={!!deleteTileObj}

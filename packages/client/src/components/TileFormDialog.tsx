@@ -14,22 +14,16 @@ import { CreateTileInput } from "../hooks/useTiles";
 import { Tile } from "@hub/shared";
 import { IconPicker, IconMode } from "./IconPicker";
 import { tileHasIconUrl } from "../utils/icon";
+import { usePreviewIcon } from "../hooks/useTiles";
 
 interface Props {
   open: boolean;
   onClose: () => void;
   onSubmit: (data: CreateTileInput | Partial<CreateTileInput>) => void;
   tile?: Tile; // when provided, acts as edit
-  onRefreshIcon?: (id: string) => void;
 }
 
-export function TileFormDialog({
-  open,
-  onClose,
-  onSubmit,
-  tile,
-  onRefreshIcon,
-}: Props) {
+export function TileFormDialog({ open, onClose, onSubmit, tile }: Props) {
   const [form, setForm] = useState<CreateTileInput>({
     title: "",
     url: "",
@@ -38,6 +32,9 @@ export function TileFormDialog({
     target: "_self", // default same tab
   });
   const [iconMode, setIconMode] = useState<IconMode>("upload");
+  const [previewIcon, setPreviewIcon] = useState<string | undefined>();
+  const previewMutation = usePreviewIcon();
+  const [iconUrlInput, setIconUrlInput] = useState<string>("");
 
   // Simple URL validation (HTTP(S) scheme); invalid allowed but highlighted.
   const isValidUrl = useCallback((value: string) => {
@@ -61,10 +58,14 @@ export function TileFormDialog({
         icon: tile.icon || "",
         target: tile.target || "_self",
       });
+      setIconUrlInput((tile as any).iconSourceUrl || "");
     } else {
       setForm({ title: "", url: "", category: "", icon: "", target: "_self" });
+      setIconUrlInput("");
     }
-    setIconMode(tileHasIconUrl(tile) ? "url" : "upload");
+    const hasRemote = Boolean((tile as any)?.iconSourceUrl);
+    setIconMode(hasRemote ? "url" : "upload");
+    setPreviewIcon(undefined);
   }, [tile, open]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,12 +75,25 @@ export function TileFormDialog({
 
   // Icon upload & URL handling is delegated to IconPicker
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    let finalIcon = form.icon || undefined;
+    let iconSourceUrl: string | undefined;
+    if (iconMode === "url" && iconUrlInput) {
+      iconSourceUrl = iconUrlInput.trim() || undefined;
+      // If user never fetched preview, still proceed; server will fetch remote or fallback.
+      if (previewIcon) {
+        finalIcon = previewIcon; // already resolved data URL
+      } else {
+        // ensure we don't send stale uploaded icon; let server attempt fetch
+        finalIcon = undefined;
+      }
+    }
     onSubmit({
       ...form,
+      icon: finalIcon,
       category: form.category || undefined,
-      icon: form.icon || undefined,
-    });
+      iconSourceUrl,
+    } as any);
     onClose();
   };
 
@@ -163,30 +177,39 @@ export function TileFormDialog({
           <IconPicker
             mode={iconMode}
             onModeChange={setIconMode}
-            value={form.icon ?? ""}
-            onChange={(val) => setForm((f) => ({ ...f, icon: val }))}
+            value={iconMode === "upload" ? form.icon ?? "" : iconUrlInput}
+            onChange={(val) => {
+              if (iconMode === "upload") {
+                setForm((f) => ({ ...f, icon: val }));
+              } else {
+                setIconUrlInput(val);
+                setPreviewIcon(undefined); // reset preview when editing URL
+              }
+            }}
+            onPreview={async ({ iconUrl }) => {
+              if (!iconUrl) return;
+              const res = await previewMutation.mutateAsync({
+                iconSourceUrl: iconUrl,
+                url: form.url,
+              });
+              setPreviewIcon(res);
+              return res;
+            }}
+            previewing={previewMutation.isPending}
+            previewValue={previewIcon}
             titleForFallback={form.title}
             maxKB={200}
           />
         </Stack>
       </DialogContent>
       <DialogActions>
-        {tile && (
-          <Button
-            startIcon={<RefreshIcon />}
-            onClick={() => tile && onRefreshIcon?.(tile.id)}
-            disabled={!tile}
-          >
-            Refresh Icon
-          </Button>
-        )}
         <Button onClick={onClose}>Cancel</Button>
         <Button
           variant="contained"
           onClick={handleSubmit}
-          disabled={titleEmpty || urlEmpty}
+          disabled={titleEmpty || urlEmpty || previewMutation.isPending}
         >
-          Save
+          {previewMutation.isPending ? "Saving..." : "Save"}
         </Button>
       </DialogActions>
     </Dialog>
