@@ -21,43 +21,24 @@ export async function createTile(data: TileCreateInput) {
     icon = (await sanitizeDataUrl(icon)) || undefined;
   }
   if (!icon) {
-    // Only attempt favicon fetch if no explicit icon or iconSourceUrl
     icon = (await fetchFaviconBase64(data.url)) || undefined;
   }
+
   return prisma.tile.create({ data: { ...data, icon, order: nextOrder } });
 }
 
 export async function updateTile(id: string, data: TileUpdateInput) {
   let newData = { ...data } as TileUpdateInput;
-  // Normalize explicit nulls to null; undefined means leave unchanged
-  const clearingIcon =
-    Object.prototype.hasOwnProperty.call(data, "icon") && data.icon === null;
-  const clearingIconSource =
-    Object.prototype.hasOwnProperty.call(data, "iconSourceUrl") &&
-    data.iconSourceUrl === null;
-
-  if (typeof newData.icon === "string" && newData.icon.startsWith("data:")) {
+  if (newData.icon?.startsWith("data:")) {
     newData.icon = (await sanitizeDataUrl(newData.icon)) || undefined;
   }
-
-  if (clearingIcon) {
-    (newData as any).icon = null; // explicit clear
-  }
-  if (clearingIconSource) {
-    (newData as any).iconSourceUrl = null; // explicit clear
-  }
-
-  // If both icon and iconSourceUrl cleared explicitly, attempt favicon fallback once
-  if (clearingIcon && clearingIconSource) {
-    const existing = await prisma.tile.findUnique({ where: { id } });
-    if (existing) {
-      const favicon = await fetchFaviconBase64(existing.url);
-      if (favicon) {
-        (newData as any).icon = favicon;
-      }
+  if (data.url) {
+    // If URL changed, attempt to refresh icon only if none provided explicitly
+    if (!data.icon) {
+      const icon = await fetchFaviconBase64(data.url);
+      if (icon) newData.icon = icon;
     }
   }
-
   return prisma.tile.update({ where: { id }, data: newData });
 }
 

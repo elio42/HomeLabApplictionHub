@@ -58,18 +58,12 @@ export function TileCard({ tile, onEdit, onDelete, reorderMode }: Props) {
     >
       {/* Anchor styled as block so entire tile surface is an accessible link enabling ctrl+click, middle-click, drag */}
       <MuiLink
-        href={reorderMode ? undefined : tile.url}
-        onClick={reorderMode ? (e) => e.preventDefault() : undefined}
-        target={reorderMode ? undefined : target}
-        rel={reorderMode ? undefined : rel}
+        href={tile.url}
+        target={target}
+        rel={rel}
         underline="none"
-        sx={{
-          flexGrow: 1,
-          display: "block",
-          color: "inherit",
-          cursor: reorderMode ? "default" : "pointer",
-        }}
-        draggable={!reorderMode}
+        sx={{ flexGrow: 1, display: "block", color: "inherit" }}
+        draggable
       >
         <CardContent sx={{ p: 2 }}>
           <Box display="flex" alignItems="center" gap={2}>

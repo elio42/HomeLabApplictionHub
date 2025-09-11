@@ -1,5 +1,4 @@
 import sharp from "sharp";
-import { request } from "undici";
 
 const MAX_ICON_BYTES = 200 * 1024; // 200KB
 const ALLOWED_MIME = new Set([
@@ -65,26 +64,4 @@ export async function sanitizeDataUrl(dataUrl: string): Promise<string | null> {
   const parsed = parseDataUrl(dataUrl);
   if (!parsed) return null;
   return stripMetadataAndNormalize(parsed.data, parsed.mime);
-}
-
-export async function fetchRemoteImageBase64(
-  url: string
-): Promise<string | null> {
-  try {
-    const res = await request(url, {
-      method: "GET",
-      headers: { "user-agent": "HomeLabApp/1.0" },
-    });
-    if (res.statusCode >= 400) return null;
-    const ctype = res.headers["content-type"];
-    if (!ctype || Array.isArray(ctype)) return null;
-    const mime = ctype.split(";")[0].toLowerCase();
-    if (!mime.startsWith("image/")) return null; // enforce image
-    const arrayBuf = await res.body.arrayBuffer();
-    const buf = Buffer.from(arrayBuf);
-    if (buf.length === 0 || buf.length > 200 * 1024) return null;
-    return stripMetadataAndNormalize(buf, mime);
-  } catch {
-    return null;
-  }
 }

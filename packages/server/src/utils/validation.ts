@@ -4,8 +4,7 @@ import { z } from "zod";
 export const tileCreateSchema = z.object({
   title: z.string().min(1).max(128),
   url: z.string().min(1, "URL required"),
-  icon: z.string().nullable().optional(),
-  iconSourceUrl: z.string().nullable().optional(),
+  icon: z.string().optional(),
   category: z.string().max(64).optional(),
   description: z.string().optional(),
   target: z.enum(["_blank", "_self"]).optional(),

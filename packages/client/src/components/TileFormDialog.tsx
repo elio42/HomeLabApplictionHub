@@ -18,7 +18,6 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import UploadIcon from "@mui/icons-material/Upload";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { CreateTileInput } from "../hooks/useTiles";
-import { useFetchIconFromUrl } from "../hooks/useTiles";
 import { Tile } from "@hub/shared";
 
 interface Props {
@@ -45,13 +44,8 @@ export function TileFormDialog({
     target: "_self", // default same tab
   });
   const [iconMode, setIconMode] = useState<"upload" | "url">("upload");
-  const [iconSourceUrl, setIconSourceUrl] = useState<string>("");
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [fetchingIcon, setFetchingIcon] = useState(false);
-  const fetchIconMutation = useFetchIconFromUrl();
-  const [fetchedIcon, setFetchedIcon] = useState<string | null>(null); // base64 result of URL fetch
 
   // Simple URL validation (HTTP(S) scheme); invalid allowed but highlighted.
   const isValidUrl = useCallback((value: string) => {
@@ -68,9 +62,6 @@ export function TileFormDialog({
 
   useEffect(() => {
     if (tile) {
-      const srcUrlRaw = (tile as any).iconSourceUrl || "";
-      const srcUrl =
-        srcUrlRaw && srcUrlRaw.startsWith("data:") ? "" : srcUrlRaw; // sanitize
       setForm({
         title: tile.title,
         url: tile.url,
@@ -78,17 +69,10 @@ export function TileFormDialog({
         icon: tile.icon || "",
         target: tile.target || "_self",
       });
-      setIconSourceUrl(srcUrl);
-      setIconMode(srcUrl ? "url" : "upload");
     } else {
       setForm({ title: "", url: "", category: "", icon: "", target: "_self" });
-      setIconSourceUrl("");
-      setIconMode("upload");
     }
     setUploadError(null);
-    setFetchedIcon(null);
-    setSubmitting(false);
-    setFetchingIcon(false);
   }, [tile, open]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,70 +131,11 @@ export function TileFormDialog({
   };
 
   const handleSubmit = () => {
-    setSubmitting(true);
-    // If iconMode URL and user entered a URL but didn't click fetch yet, attempt fetch first
-    const remoteInput = iconMode === "url" ? iconSourceUrl.trim() : "";
-    const needsFetch =
-      iconMode === "url" && remoteInput.length > 0 && !fetchedIcon;
-    if (needsFetch) {
-      setFetchingIcon(true);
-      fetchIconMutation.mutate(remoteInput, {
-        onSuccess: (dataUrl) => {
-          const finalIcon = dataUrl || undefined;
-          onSubmit({
-            ...form,
-            icon: finalIcon,
-            iconSourceUrl: remoteInput,
-            category: form.category || undefined,
-          });
-          setSubmitting(false);
-          setFetchingIcon(false);
-          onClose();
-        },
-        onError: () => {
-          // remote icon fetch failed -> clear any previous remote iconSourceUrl & icon so server can fallback
-          onSubmit({
-            ...form,
-            icon: null as any,
-            iconSourceUrl: null as any,
-            category: form.category || undefined,
-          });
-          setSubmitting(false);
-          setFetchingIcon(false);
-          onClose();
-        },
-      });
-      return;
-    }
-    // If user already fetched (fetchedIcon) use it
-    const finalIcon =
-      fetchedIcon || (form.icon?.startsWith("data:") ? form.icon : undefined);
-    if (iconMode === "url") {
-      if (remoteInput === "") {
-        // user cleared URL -> clear iconSourceUrl and don't send icon to trigger fallback
-        onSubmit({
-          ...form,
-          icon: null as any,
-          iconSourceUrl: null as any,
-          category: form.category || undefined,
-        });
-      } else {
-        onSubmit({
-          ...form,
-          icon: finalIcon || undefined,
-          iconSourceUrl: remoteInput,
-          category: form.category || undefined,
-        });
-      }
-    } else {
-      onSubmit({
-        ...form,
-        icon: finalIcon || undefined,
-        iconSourceUrl: null as any,
-        category: form.category || undefined,
-      });
-    }
-    setSubmitting(false);
+    onSubmit({
+      ...form,
+      category: form.category || undefined,
+      icon: form.icon || undefined,
+    });
     onClose();
   };
 
@@ -279,62 +204,23 @@ export function TileFormDialog({
             <MenuItem value="url">URL</MenuItem>
           </TextField>
           {iconMode === "url" && (
-            <Stack spacing={1}>
-              <TextField
-                label="Icon URL (optional)"
-                name="iconUrl"
-                value={iconSourceUrl}
-                onChange={(e) => {
-                  setFetchedIcon(null); // reset fetched preview
-                  setIconSourceUrl(e.target.value);
-                }}
-                fullWidth
-                error={!!iconSourceUrl && !isValidUrl(iconSourceUrl)}
-                helperText={
-                  iconSourceUrl && !isValidUrl(iconSourceUrl)
-                    ? "Invalid image URL - fallback will apply"
-                    : fetchedIcon
-                    ? "Fetched icon ready"
-                    : "Enter URL then Fetch to preview"
-                }
-              />
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Button
-                  variant="outlined"
-                  size="small"
-                  disabled={
-                    !iconSourceUrl ||
-                    !isValidUrl(iconSourceUrl) ||
-                    fetchIconMutation.isPending
-                  }
-                  onClick={() => {
-                    if (!iconSourceUrl || !isValidUrl(iconSourceUrl)) return;
-                    setFetchingIcon(true);
-                    fetchIconMutation.mutate(iconSourceUrl, {
-                      onSuccess: (dataUrl) => {
-                        setFetchedIcon(dataUrl);
-                        setFetchingIcon(false);
-                      },
-                      onError: () => {
-                        setFetchedIcon(null);
-                        setFetchingIcon(false);
-                      },
-                    });
-                  }}
-                >
-                  {fetchIconMutation.isPending ? "Fetching..." : "Fetch"}
-                </Button>
-                {fetchedIcon && (
-                  <Avatar variant="rounded" sx={{ width: 40, height: 40 }}>
-                    <img
-                      src={fetchedIcon}
-                      alt="preview"
-                      style={{ width: "100%", height: "100%" }}
-                    />
-                  </Avatar>
-                )}
-              </Stack>
-            </Stack>
+            <TextField
+              label="Icon URL (optional)"
+              name="iconUrl"
+              value={
+                form.icon && !form.icon.startsWith("data:") ? form.icon : ""
+              }
+              onChange={(e) => {
+                setForm((f) => ({ ...f, icon: e.target.value }));
+              }}
+              fullWidth
+              error={!!form.icon && !isValidUrl(form.icon)}
+              helperText={
+                form.icon && !isValidUrl(form.icon)
+                  ? "Invalid image URL - fallback will apply"
+                  : "Provide direct image URL or leave blank for favicon/letter"
+              }
+            />
           )}
           <Box display="flex" alignItems="center" gap={2}>
             <input
@@ -345,18 +231,16 @@ export function TileFormDialog({
               onChange={handleFileSelect}
             />
             <Avatar variant="rounded" sx={{ width: 56, height: 56 }}>
-              {fetchedIcon ? (
-                <img
-                  src={fetchedIcon}
-                  alt="icon"
-                  style={{ width: "100%", height: "100%" }}
-                />
-              ) : form.icon && form.icon.startsWith("data:") ? (
-                <img
-                  src={form.icon}
-                  alt="icon"
-                  style={{ width: "100%", height: "100%" }}
-                />
+              {form.icon ? (
+                form.icon.startsWith("data:") ? (
+                  <img
+                    src={form.icon}
+                    alt="icon"
+                    style={{ width: "100%", height: "100%" }}
+                  />
+                ) : (
+                  form.title.charAt(0)
+                )
               ) : (
                 form.title.charAt(0) || "?"
               )}
@@ -440,27 +324,11 @@ export function TileFormDialog({
         <Button
           variant="contained"
           onClick={handleSubmit}
-          disabled={titleEmpty || urlEmpty || submitting || fetchingIcon}
+          disabled={titleEmpty || urlEmpty}
         >
-          {submitting || fetchingIcon ? "Saving..." : "Save"}
+          Save
         </Button>
       </DialogActions>
-      {(fetchingIcon || submitting) && (
-        <Box
-          sx={{
-            position: "absolute",
-            inset: 0,
-            bgcolor: "rgba(255,255,255,0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Typography variant="body2">
-            {fetchingIcon ? "Fetching icon…" : "Saving…"}
-          </Typography>
-        </Box>
-      )}
     </Dialog>
   );
 }

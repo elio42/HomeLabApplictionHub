@@ -7,7 +7,6 @@ export interface Tile {
   title: string;
   url: string;
   icon?: string; // optional filename or data URL
-  iconSourceUrl?: string; // original remote image URL (if provided)
   category?: string;
   description?: string;
   target?: TileTarget;
