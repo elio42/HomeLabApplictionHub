@@ -129,7 +129,7 @@ export function TileFormDialog({ open, onClose, onSubmit, tile }: Props) {
                 ? "Invalid URL (will still be saved)"
                 : urlEmpty
                 ? "URL is required"
-                : ""
+                : "URL should include http:// or https://"
             }
             sx={
               !urlEmpty && !urlValid
@@ -164,8 +164,8 @@ export function TileFormDialog({ open, onClose, onSubmit, tile }: Props) {
             onChange={handleChange}
             fullWidth
           >
-            <MenuItem value="_blank">New Tab</MenuItem>
             <MenuItem value="_self">Same Tab</MenuItem>
+            <MenuItem value="_blank">New Tab</MenuItem>
           </TextField>
           <TextField
             label="Optional Category for filtering"
@@ -199,6 +199,11 @@ export function TileFormDialog({ open, onClose, onSubmit, tile }: Props) {
             previewValue={previewIcon}
             titleForFallback={form.title}
             maxKB={200}
+            onClear={() => {
+              setForm((f) => ({ ...f, icon: "" }));
+              setIconUrlInput("");
+              setPreviewIcon(undefined);
+            }}
           />
         </Stack>
       </DialogContent>

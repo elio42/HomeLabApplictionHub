@@ -18,16 +18,17 @@ export type IconMode = "upload" | "url";
 interface IconPickerProps {
   mode: IconMode;
   onModeChange: (mode: IconMode) => void;
-  value: string; // icon string (data URL or external URL)
+  value: string; // icon string (data URL or URL input)
   onChange: (value: string) => void;
   onPreview?: (args: {
     iconUrl?: string;
     uploadedIcon?: string;
   }) => Promise<string | undefined>;
   previewing?: boolean;
-  previewValue?: string; // resolved preview (data URL) separate from raw value
-  titleForFallback: string; // used to render first letter when no/invalid icon
-  maxKB?: number; // default 200KB
+  previewValue?: string;
+  titleForFallback: string;
+  maxKB?: number;
+  onClear?: () => void; // clears both icon and url externally if provided
 }
 
 const isDataUrl = (s: string) => s.startsWith("data:");
@@ -51,6 +52,7 @@ export function IconPicker({
   previewValue,
   titleForFallback,
   maxKB = 200,
+  onClear,
 }: IconPickerProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -105,22 +107,30 @@ export function IconPicker({
   };
 
   const handleClearIcon = () => {
+    if (onClear) onClear();
     onChange("");
     if (fileInputRef.current) fileInputRef.current.value = "";
+    setUploadError(null);
   };
 
   const invalidIconUrl = !!(mode === "url" && value && !isHttpUrl(value));
+  const ACTION_BUTTON_WIDTH = 150;
 
   return (
-    <Stack spacing={2}>
+    <Stack spacing={1} sx={{ mt: 1 }}>
+      {/* Mode Switch */}
       <TextField
         select
         label="Icon Source"
         value={mode}
+        size="small"
         onChange={(e) => {
           const next = e.target.value as IconMode;
           onModeChange(next);
           if (next === "upload" && value && !isDataUrl(value)) {
+            onChange("");
+          }
+          if (next === "url" && value && isDataUrl(value)) {
             onChange("");
           }
         }}
@@ -130,119 +140,146 @@ export function IconPicker({
         <MenuItem value="url">URL</MenuItem>
       </TextField>
 
-      {mode === "url" && (
-        <Stack spacing={1}>
-          <TextField
-            label="Icon URL (optional)"
-            value={!isDataUrl(value) ? value : ""}
-            onChange={(e) => onChange(e.target.value)}
-            fullWidth
-            error={invalidIconUrl}
-            helperText={
-              invalidIconUrl
-                ? "Invalid image URL - fallback will apply"
-                : previewValue
-                ? "Preview loaded"
-                : "Enter direct image URL or leave blank for favicon"
-            }
-          />
-          {onPreview && (
-            <Stack direction="row" spacing={1}>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() =>
-                  onPreview({ iconUrl: !isDataUrl(value) ? value : undefined })
-                }
-                disabled={previewing || !value}
-              >
-                {previewing
-                  ? "Fetching..."
-                  : previewValue
-                  ? "Refetch"
-                  : "Fetch Preview"}
-              </Button>
-            </Stack>
-          )}
-        </Stack>
-      )}
-
-      <Stack direction="row" alignItems="center" gap={2}>
-        <Avatar variant="rounded" sx={{ width: 56, height: 56 }}>
-          {(() => {
-            const shown = previewValue || value;
-            if (shown && isDataUrl(shown)) {
-              return (
-                <img
-                  src={shown}
-                  alt="icon"
-                  style={{ width: "100%", height: "100%" }}
-                />
-              );
-            }
-            return (titleForFallback || "?")[0];
-          })()}
-        </Avatar>
-
-        {mode === "upload" && (
-          <Stack direction="column" spacing={1} sx={{ flexGrow: 1 }}>
-            <Stack direction="row" spacing={1}>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                style={{ display: "none" }}
-                onChange={handleFileSelect}
-              />
-              <Tooltip title="Upload image">
-                <span>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<UploadIcon />}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    Upload
-                  </Button>
-                </span>
-              </Tooltip>
-              {value && (
-                <Tooltip title="Clear icon">
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={handleClearIcon}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              )}
-            </Stack>
-            <Box
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              sx={{
-                border: "2px dashed",
-                borderColor: dragActive ? "primary.main" : "divider",
-                p: 1.5,
-                textAlign: "center",
-                borderRadius: 1,
-                bgcolor: dragActive ? "action.hover" : "transparent",
-                transition: "background-color 120ms, border-color 120ms",
-                fontSize: "0.75rem",
-              }}
+      {/* Action Buttons (same slot) */}
+      <Stack direction="row" spacing={1}>
+        {mode === "upload" ? (
+          <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={handleFileSelect}
+            />
+            <Button
+              variant="outlined"
+              fullWidth
+              size="small"
+              startIcon={<UploadIcon />}
+              onClick={() => fileInputRef.current?.click()}
+              sx={{ textTransform: "none", width: ACTION_BUTTON_WIDTH }}
             >
-              Drag & drop image here (≤{maxKB}KB)
-            </Box>
-            {uploadError && (
-              <Typography color="error" variant="caption">
-                {uploadError}
-              </Typography>
-            )}
-          </Stack>
+              Upload Image
+            </Button>
+          </>
+        ) : (
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() =>
+              onPreview?.({ iconUrl: !isDataUrl(value) ? value : undefined })
+            }
+            disabled={previewing || !value}
+            sx={{ textTransform: "none", width: ACTION_BUTTON_WIDTH }}
+          >
+            {previewing
+              ? "Fetching..."
+              : previewValue
+              ? "Refetch"
+              : "Fetch Preview"}
+          </Button>
         )}
+
+        <Button
+          variant="outlined"
+          size="small"
+          color="error"
+          onClick={handleClearIcon}
+          sx={{ textTransform: "none", width: ACTION_BUTTON_WIDTH }}
+        >
+          Clear Icon/URL
+        </Button>
       </Stack>
+
+      {/* Unified Body: URL field on left (URL mode) / Drop zone right (upload) with preview centered consistently */}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "stretch",
+          gap: 1,
+          minHeight: 90,
+        }}
+      >
+        {/* URL Field (left) */}
+        {mode === "url" && (
+          <Box sx={{ flex: 1, display: "flex" }}>
+            <TextField
+              label="Icon URL"
+              value={!isDataUrl(value) ? value : ""}
+              onChange={(e) => {
+                onChange(e.target.value);
+              }}
+              size="small"
+              fullWidth
+              error={invalidIconUrl}
+              helperText={
+                invalidIconUrl
+                  ? "Invalid image URL"
+                  : previewValue
+                  ? "Preview loaded"
+                  : "Provide image URL or leave blank"
+              }
+            />
+          </Box>
+        )}
+
+        {/* Preview */}
+        <Box
+          sx={{
+            width: 72,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Avatar variant="rounded" sx={{ width: 56, height: 56 }}>
+            {(() => {
+              const shown = previewValue || value;
+              if (shown && isDataUrl(shown)) {
+                return (
+                  <img
+                    src={shown}
+                    alt="icon"
+                    style={{ width: "100%", height: "100%" }}
+                  />
+                );
+              }
+              return (titleForFallback || "?")[0];
+            })()}
+          </Avatar>
+        </Box>
+
+        {/* Drag & Drop (right) */}
+        {mode === "upload" && (
+          <Box
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            sx={{
+              flex: 1,
+              border: "2px dashed",
+              borderColor: dragActive ? "primary.main" : "divider",
+              borderRadius: 1,
+              bgcolor: dragActive ? "action.hover" : "transparent",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              px: 1,
+              fontSize: "0.7rem",
+              textAlign: "center",
+              transition: "background-color 120ms, border-color 120ms",
+            }}
+          >
+            Drop image here (≤{maxKB}KB)
+          </Box>
+        )}
+      </Box>
+      {uploadError && mode === "upload" && (
+        <Typography color="error" variant="caption" sx={{ mt: -0.5 }}>
+          {uploadError}
+        </Typography>
+      )}
     </Stack>
   );
 }
