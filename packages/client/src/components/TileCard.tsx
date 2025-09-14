@@ -14,6 +14,12 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Tile } from "@hub/shared";
+
+function getFallbackInitial(title: string): string {
+  if (!title) return "?";
+  const m = title.trim().match(/\p{L}|\p{N}/u); // first letter/number unicode aware
+  return m ? m[0].toUpperCase() : title.charAt(0).toUpperCase();
+}
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -67,15 +73,30 @@ export function TileCard({ tile, onEdit, onDelete, reorderMode }: Props) {
       >
         <CardContent sx={{ p: 2 }}>
           <Box display="flex" alignItems="center" gap={2}>
-            <Avatar sx={{ bgcolor: "primary.main" }} variant="rounded">
+            <Avatar
+              sx={{
+                bgcolor: "background.paper",
+                border: "1px solid",
+                borderColor: "divider",
+                overflow: "hidden",
+                color: "text.primary",
+                fontWeight: 600,
+              }}
+              variant="rounded"
+            >
               {tile.icon ? (
                 <img
                   src={tile.icon}
                   alt={tile.title}
-                  style={{ width: "100%", height: "100%" }}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                    background: "transparent",
+                  }}
                 />
               ) : (
-                tile.title.charAt(0)
+                getFallbackInitial(tile.title)
               )}
             </Avatar>
             <Box sx={{ minWidth: 0, flexGrow: 1 }}>

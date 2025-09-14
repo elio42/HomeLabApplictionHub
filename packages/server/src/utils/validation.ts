@@ -13,7 +13,9 @@ export const tileCreateSchema = z.object({
   visible: z.boolean().optional(),
 });
 
-export const tileUpdateSchema = tileCreateSchema.partial();
+export const tileUpdateSchema = tileCreateSchema
+  .extend({ iconSourceUrl: z.string().nullable().optional() })
+  .partial();
 
 export type TileCreateInput = z.infer<typeof tileCreateSchema>;
 export type TileUpdateInput = z.infer<typeof tileUpdateSchema>;

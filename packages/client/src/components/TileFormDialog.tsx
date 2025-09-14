@@ -65,7 +65,12 @@ export function TileFormDialog({ open, onClose, onSubmit, tile }: Props) {
     }
     const hasRemote = Boolean((tile as any)?.iconSourceUrl);
     setIconMode(hasRemote ? "url" : "upload");
-    setPreviewIcon(undefined);
+    // If this tile has a remote icon source and a stored processed icon, show it immediately as preview
+    if (hasRemote && tile?.icon && tile.icon.startsWith("data:")) {
+      setPreviewIcon(tile.icon);
+    } else {
+      setPreviewIcon(undefined);
+    }
   }, [tile, open]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -77,15 +82,20 @@ export function TileFormDialog({ open, onClose, onSubmit, tile }: Props) {
 
   const handleSubmit = async () => {
     let finalIcon = form.icon || undefined;
-    let iconSourceUrl: string | undefined;
-    if (iconMode === "url" && iconUrlInput) {
-      iconSourceUrl = iconUrlInput.trim() || undefined;
-      // If user never fetched preview, still proceed; server will fetch remote or fallback.
-      if (previewIcon) {
-        finalIcon = previewIcon; // already resolved data URL
-      } else {
-        // ensure we don't send stale uploaded icon; let server attempt fetch
-        finalIcon = undefined;
+    let iconSourceUrl: string | undefined | null;
+    if (iconMode === "url") {
+      const trimmed = iconUrlInput.trim();
+      if (trimmed) {
+        iconSourceUrl = trimmed;
+        if (previewIcon) {
+          finalIcon = previewIcon;
+        } else {
+          finalIcon = undefined; // force server-side fetch attempt
+        }
+      } else if ((tile as any)?.iconSourceUrl) {
+        // Was previously set but now cleared -> send null to clear it
+        iconSourceUrl = null;
+        finalIcon = form.icon ? form.icon : undefined; // if user switched modes previously may keep upload
       }
     }
     onSubmit({

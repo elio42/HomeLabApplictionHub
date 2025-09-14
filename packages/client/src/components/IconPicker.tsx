@@ -115,6 +115,16 @@ export function IconPicker({
 
   const invalidIconUrl = !!(mode === "url" && value && !isHttpUrl(value));
   const ACTION_BUTTON_WIDTH = 150;
+  const ACTION_BUTTON_SX = {
+    textTransform: "none",
+    width: ACTION_BUTTON_WIDTH,
+  };
+
+  const getFallbackInitial = (title: string): string => {
+    if (!title) return "?";
+    const m = title.trim().match(/\p{L}|\p{N}/u);
+    return m ? m[0].toUpperCase() : title.charAt(0).toUpperCase();
+  };
 
   return (
     <Stack spacing={1} sx={{ mt: 1 }}>
@@ -143,7 +153,14 @@ export function IconPicker({
       {/* Action Buttons (same slot) */}
       <Stack direction="row" spacing={1}>
         {mode === "upload" ? (
-          <>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<UploadIcon />}
+            onClick={() => fileInputRef.current?.click()}
+            sx={ACTION_BUTTON_SX}
+          >
+            Upload Image
             <input
               ref={fileInputRef}
               type="file"
@@ -151,17 +168,7 @@ export function IconPicker({
               style={{ display: "none" }}
               onChange={handleFileSelect}
             />
-            <Button
-              variant="outlined"
-              fullWidth
-              size="small"
-              startIcon={<UploadIcon />}
-              onClick={() => fileInputRef.current?.click()}
-              sx={{ textTransform: "none", width: ACTION_BUTTON_WIDTH }}
-            >
-              Upload Image
-            </Button>
-          </>
+          </Button>
         ) : (
           <Button
             variant="outlined"
@@ -170,7 +177,7 @@ export function IconPicker({
               onPreview?.({ iconUrl: !isDataUrl(value) ? value : undefined })
             }
             disabled={previewing || !value}
-            sx={{ textTransform: "none", width: ACTION_BUTTON_WIDTH }}
+            sx={ACTION_BUTTON_SX}
           >
             {previewing
               ? "Fetching..."
@@ -185,31 +192,74 @@ export function IconPicker({
           size="small"
           color="error"
           onClick={handleClearIcon}
-          sx={{ textTransform: "none", width: ACTION_BUTTON_WIDTH }}
+          sx={ACTION_BUTTON_SX}
         >
           Clear Icon/URL
         </Button>
       </Stack>
 
-      {/* Unified Body: URL field on left (URL mode) / Drop zone right (upload) with preview centered consistently */}
+      {/* Unified Body: URL field / Preview / Drop zone */}
       <Box
         sx={{
           display: "flex",
           flexDirection: "row",
-          alignItems: "stretch",
+          alignItems: "center", // center vertically
           gap: 1,
-          minHeight: 90,
+          height: 64, // fixed unified height
         }}
       >
-        {/* URL Field (left) */}
+        {/* Preview */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxSizing: "border-box",
+          }}
+        >
+          <Avatar
+            variant="rounded"
+            sx={{
+              width: 64,
+              height: 64,
+              fontSize: 22,
+              lineHeight: 1,
+              bgcolor: "background.paper",
+              border: "1px solid",
+              borderColor: "divider",
+              overflow: "hidden",
+              color: "text.primary",
+              fontWeight: 600,
+            }}
+          >
+            {(() => {
+              const shown = previewValue || value;
+              if (shown && isDataUrl(shown)) {
+                return (
+                  <img
+                    src={shown}
+                    alt="icon"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain",
+                      background: "transparent",
+                    }}
+                  />
+                );
+              }
+              return getFallbackInitial(titleForFallback || "?");
+            })()}
+          </Avatar>
+        </Box>
+
+        {/* URL Field (right) */}
         {mode === "url" && (
           <Box sx={{ flex: 1, display: "flex" }}>
             <TextField
               label="Icon URL"
               value={!isDataUrl(value) ? value : ""}
-              onChange={(e) => {
-                onChange(e.target.value);
-              }}
+              onChange={(e) => onChange(e.target.value)}
               size="small"
               fullWidth
               error={invalidIconUrl}
@@ -224,32 +274,6 @@ export function IconPicker({
           </Box>
         )}
 
-        {/* Preview */}
-        <Box
-          sx={{
-            width: 72,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Avatar variant="rounded" sx={{ width: 56, height: 56 }}>
-            {(() => {
-              const shown = previewValue || value;
-              if (shown && isDataUrl(shown)) {
-                return (
-                  <img
-                    src={shown}
-                    alt="icon"
-                    style={{ width: "100%", height: "100%" }}
-                  />
-                );
-              }
-              return (titleForFallback || "?")[0];
-            })()}
-          </Avatar>
-        </Box>
-
         {/* Drag & Drop (right) */}
         {mode === "upload" && (
           <Box
@@ -258,6 +282,7 @@ export function IconPicker({
             onDrop={handleDrop}
             sx={{
               flex: 1,
+              height: 64,
               border: "2px dashed",
               borderColor: dragActive ? "primary.main" : "divider",
               borderRadius: 1,
@@ -269,6 +294,8 @@ export function IconPicker({
               fontSize: "0.7rem",
               textAlign: "center",
               transition: "background-color 120ms, border-color 120ms",
+              boxSizing: "border-box", // include border in total 56px
+              overflow: "hidden",
             }}
           >
             Drop image here (≤{maxKB}KB)

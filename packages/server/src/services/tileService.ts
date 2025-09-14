@@ -73,24 +73,36 @@ export async function createTile(data: TileCreateInput) {
 }
 
 export async function updateTile(id: string, data: TileUpdateInput) {
-  let newData: TileUpdateInput & { iconSourceUrl?: string } = { ...data };
+  let newData: TileUpdateInput & { iconSourceUrl?: string | null } = {
+    ...data,
+  };
+
+  // Normalize clearing of iconSourceUrl: if explicitly provided as empty string, set to null
+  const clearingSource = (newData as any).iconSourceUrl === "";
+  if (clearingSource) {
+    delete (newData as any).iconSourceUrl; // delete to allow explicit null in separate update data object below
+  }
+
   if (newData.icon?.startsWith("data:")) {
     newData.icon = (await sanitizeDataUrl(newData.icon)) || undefined;
   } else if (!newData.icon && newData.iconSourceUrl) {
-    // attempt remote download
+    // attempt remote download only if not clearing
     const downloaded = await fetchRemoteImageBase64(newData.iconSourceUrl);
     if (downloaded) {
       newData.icon = (await sanitizeDataUrl(downloaded)) || undefined;
     }
   }
 
-  if (!newData.icon && data.url) {
-    // Final fallback to favicon
+  if (!newData.icon && !clearingSource && data.url) {
+    // Final fallback to favicon (only if not explicitly clearing source URL)
     const fav = await fetchFaviconBase64(data.url);
     if (fav) newData.icon = fav;
   }
 
-  return prisma.tile.update({ where: { id }, data: newData });
+  // Build final data object; if clearingSource, set iconSourceUrl to null
+  const updateData: any = { ...newData };
+  if (clearingSource) updateData.iconSourceUrl = null;
+  return prisma.tile.update({ where: { id }, data: updateData });
 }
 
 export async function refreshTileIcon(id: string) {
