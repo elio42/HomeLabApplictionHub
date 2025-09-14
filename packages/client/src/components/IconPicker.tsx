@@ -1,17 +1,17 @@
 import React, { useCallback, useRef, useState } from "react";
 import {
   Stack,
-  TextField,
-  MenuItem,
+  Select,
   Avatar,
   Tooltip,
   Button,
   IconButton,
   Box,
-  Typography,
-} from "@mui/material";
-import UploadIcon from "@mui/icons-material/Upload";
-import DeleteIcon from "@mui/icons-material/Delete";
+  Text,
+  Input,
+  useColorModeValue,
+} from "@chakra-ui/react";
+import { MdUpload, MdDelete } from "react-icons/md";
 
 export type IconMode = "upload" | "url";
 
@@ -127,38 +127,33 @@ export function IconPicker({
   };
 
   return (
-    <Stack spacing={1} sx={{ mt: 1 }}>
+    <Stack spacing={2} mt={1}>
       {/* Mode Switch */}
-      <TextField
-        select
-        label="Icon Source"
-        value={mode}
-        size="small"
-        onChange={(e) => {
-          const next = e.target.value as IconMode;
-          onModeChange(next);
-          if (next === "upload" && value && !isDataUrl(value)) {
-            onChange("");
-          }
-          if (next === "url" && value && isDataUrl(value)) {
-            onChange("");
-          }
-        }}
-        fullWidth
-      >
-        <MenuItem value="upload">Upload</MenuItem>
-        <MenuItem value="url">URL</MenuItem>
-      </TextField>
+      <Box>
+        <Select
+          value={mode}
+          size="sm"
+          onChange={(e) => {
+            const next = e.target.value as IconMode;
+            onModeChange(next);
+            if (next === "upload" && value && !isDataUrl(value)) onChange("");
+            if (next === "url" && value && isDataUrl(value)) onChange("");
+          }}
+        >
+          <option value="upload">Upload</option>
+          <option value="url">URL</option>
+        </Select>
+      </Box>
 
       {/* Action Buttons (same slot) */}
-      <Stack direction="row" spacing={1}>
+      <Stack direction="row" spacing={2}>
         {mode === "upload" ? (
           <Button
-            variant="outlined"
-            size="small"
-            startIcon={<UploadIcon />}
+            variant="outline"
+            size="sm"
+            leftIcon={<MdUpload />}
             onClick={() => fileInputRef.current?.click()}
-            sx={ACTION_BUTTON_SX}
+            w="150px"
           >
             Upload Image
             <input
@@ -171,13 +166,13 @@ export function IconPicker({
           </Button>
         ) : (
           <Button
-            variant="outlined"
-            size="small"
+            variant="outline"
+            size="sm"
             onClick={() =>
               onPreview?.({ iconUrl: !isDataUrl(value) ? value : undefined })
             }
             disabled={previewing || !value}
-            sx={ACTION_BUTTON_SX}
+            w="150px"
           >
             {previewing
               ? "Fetching..."
@@ -186,13 +181,12 @@ export function IconPicker({
               : "Fetch Preview"}
           </Button>
         )}
-
         <Button
-          variant="outlined"
-          size="small"
-          color="error"
+          variant="outline"
+          size="sm"
+          colorScheme="red"
           onClick={handleClearIcon}
-          sx={ACTION_BUTTON_SX}
+          w="150px"
         >
           Clear Icon/URL
         </Button>
@@ -200,37 +194,21 @@ export function IconPicker({
 
       {/* Unified Body: URL field / Preview / Drop zone */}
       <Box
-        sx={{
-          display: "flex",
-          flexDirection: "row",
-          alignItems: "center", // center vertically
-          gap: 1,
-          height: 64, // fixed unified height
-        }}
+        display="flex"
+        flexDirection="row"
+        alignItems="center"
+        gap={2}
+        h="64px"
       >
         {/* Preview */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxSizing: "border-box",
-          }}
-        >
+        <Box display="flex" alignItems="center" justifyContent="center">
           <Avatar
-            variant="rounded"
-            sx={{
-              width: 64,
-              height: 64,
-              fontSize: 22,
-              lineHeight: 1,
-              bgcolor: "background.paper",
-              border: "1px solid",
-              borderColor: "divider",
-              overflow: "hidden",
-              color: "text.primary",
-              fontWeight: 600,
-            }}
+            borderWidth="1px"
+            borderColor={useColorModeValue("gray.200", "gray.700")}
+            w="64px"
+            h="64px"
+            fontSize="22px"
+            fontWeight={600}
           >
             {(() => {
               const shown = previewValue || value;
@@ -255,22 +233,33 @@ export function IconPicker({
 
         {/* URL Field (right) */}
         {mode === "url" && (
-          <Box sx={{ flex: 1, display: "flex" }}>
-            <TextField
-              label="Icon URL"
-              value={!isDataUrl(value) ? value : ""}
-              onChange={(e) => onChange(e.target.value)}
-              size="small"
-              fullWidth
-              error={invalidIconUrl}
-              helperText={
-                invalidIconUrl
+          <Box flex={1} display="flex">
+            <Box flex={1}>
+              <Input
+                placeholder="Icon URL"
+                value={!isDataUrl(value) ? value : ""}
+                onChange={(e) => onChange(e.target.value)}
+                size="sm"
+                isInvalid={invalidIconUrl}
+              />
+              <Text
+                mt={1}
+                fontSize="xs"
+                color={
+                  invalidIconUrl
+                    ? "red.400"
+                    : previewValue
+                    ? "green.400"
+                    : "gray.500"
+                }
+              >
+                {invalidIconUrl
                   ? "Invalid image URL"
                   : previewValue
                   ? "Preview loaded"
-                  : "Provide image URL or leave blank"
-              }
-            />
+                  : "Provide image URL or leave blank"}
+              </Text>
+            </Box>
           </Box>
         )}
 
@@ -280,32 +269,37 @@ export function IconPicker({
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            sx={{
-              flex: 1,
-              height: 64,
-              border: "2px dashed",
-              borderColor: dragActive ? "primary.main" : "divider",
-              borderRadius: 1,
-              bgcolor: dragActive ? "action.hover" : "transparent",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              px: 1,
-              fontSize: "0.7rem",
-              textAlign: "center",
-              transition: "background-color 120ms, border-color 120ms",
-              boxSizing: "border-box", // include border in total 56px
-              overflow: "hidden",
-            }}
+            flex={1}
+            h="64px"
+            border="2px dashed"
+            borderColor={
+              dragActive
+                ? "brand.400"
+                : useColorModeValue("gray.300", "gray.600")
+            }
+            borderRadius="md"
+            bg={
+              dragActive
+                ? useColorModeValue("gray.100", "gray.700")
+                : "transparent"
+            }
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            px={2}
+            fontSize="xs"
+            textAlign="center"
+            transition="background-color 120ms, border-color 120ms"
+            overflow="hidden"
           >
             Drop image here (≤{maxKB}KB)
           </Box>
         )}
       </Box>
       {uploadError && mode === "upload" && (
-        <Typography color="error" variant="caption" sx={{ mt: -0.5 }}>
+        <Text color="red.400" fontSize="xs" mt={-1}>
           {uploadError}
-        </Typography>
+        </Text>
       )}
     </Stack>
   );

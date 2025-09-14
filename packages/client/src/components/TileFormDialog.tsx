@@ -1,15 +1,20 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
   Button,
   Stack,
-  MenuItem,
-} from "@mui/material";
-import RefreshIcon from "@mui/icons-material/Refresh";
+  Input,
+  Select,
+  FormControl,
+  FormLabel,
+  FormErrorMessage,
+  FormHelperText,
+} from "@chakra-ui/react";
 import { CreateTileInput } from "../hooks/useTiles";
 import { Tile } from "@hub/shared";
 import { IconPicker, IconMode } from "./IconPicker";
@@ -73,7 +78,9 @@ export function TileFormDialog({ open, onClose, onSubmit, tile }: Props) {
     }
   }, [tile, open]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setForm((f) => ({ ...f, [name]: value }));
   };
@@ -112,121 +119,93 @@ export function TileFormDialog({ open, onClose, onSubmit, tile }: Props) {
   const urlValid = isValidUrl(form.url.trim());
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>{tile ? "Edit Tile" : "Add Tile"}</DialogTitle>
-      <DialogContent>
-        <Stack spacing={2} mt={1}>
-          {/* Fields */}
-          <TextField
-            label="Title"
-            name="title"
-            value={form.title}
-            onChange={handleChange}
-            required
-            fullWidth
-            error={titleEmpty}
-          />
-          <TextField
-            label="URL"
-            name="url"
-            value={form.url}
-            onChange={handleChange}
-            required
-            fullWidth
-            error={urlEmpty}
-            helperText={
-              !urlEmpty && !urlValid
-                ? "Invalid URL (will still be saved)"
-                : urlEmpty
-                ? "URL is required"
-                : "URL should include http:// or https://"
-            }
-            sx={
-              !urlEmpty && !urlValid
-                ? {
-                    "& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline":
-                      {
-                        borderColor: "warning.main",
-                      },
-                    "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline":
-                      {
-                        borderColor: "warning.main",
-                      },
-                    "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
-                      {
-                        borderColor: "warning.main",
-                      },
-                    "& .MuiInputLabel-root.Mui-focused": {
-                      color: "warning.main",
-                    },
-                    "& .MuiFormHelperText-root": {
-                      color: "warning.main",
-                    },
-                  }
-                : undefined
-            }
-          />
-          <TextField
-            select
-            label="Target"
-            name="target"
-            value={form.target}
-            onChange={handleChange}
-            fullWidth
+    <Modal isOpen={open} onClose={onClose} isCentered size="lg">
+      <ModalOverlay />
+      <ModalContent>
+        <ModalHeader>{tile ? "Edit Tile" : "Add Tile"}</ModalHeader>
+        <ModalBody>
+          <Stack spacing={4} mt={1}>
+            <FormControl isRequired isInvalid={titleEmpty}>
+              <FormLabel>Title</FormLabel>
+              <Input name="title" value={form.title} onChange={handleChange} />
+              {titleEmpty && (
+                <FormErrorMessage>Title is required</FormErrorMessage>
+              )}
+            </FormControl>
+            <FormControl isRequired isInvalid={urlEmpty}>
+              <FormLabel>URL</FormLabel>
+              <Input name="url" value={form.url} onChange={handleChange} />
+              <FormHelperText
+                color={!urlEmpty && !urlValid ? "orange.400" : undefined}
+              >
+                {!urlEmpty && !urlValid
+                  ? "Invalid URL (will still be saved)"
+                  : urlEmpty
+                  ? "URL is required"
+                  : "URL should include http:// or https://"}
+              </FormHelperText>
+            </FormControl>
+            <FormControl>
+              <FormLabel>Target</FormLabel>
+              <Select name="target" value={form.target} onChange={handleChange}>
+                <option value="_self">Same Tab</option>
+                <option value="_blank">New Tab</option>
+              </Select>
+            </FormControl>
+            <FormControl>
+              <FormLabel>Optional Category for filtering</FormLabel>
+              <Input
+                name="category"
+                value={form.category}
+                onChange={handleChange}
+              />
+            </FormControl>
+            <IconPicker
+              mode={iconMode}
+              onModeChange={setIconMode}
+              value={iconMode === "upload" ? form.icon ?? "" : iconUrlInput}
+              onChange={(val) => {
+                if (iconMode === "upload") {
+                  setForm((f) => ({ ...f, icon: val }));
+                } else {
+                  setIconUrlInput(val);
+                  setPreviewIcon(undefined);
+                }
+              }}
+              onPreview={async ({ iconUrl }) => {
+                if (!iconUrl) return;
+                const res = await previewMutation.mutateAsync({
+                  iconSourceUrl: iconUrl,
+                  url: form.url,
+                });
+                setPreviewIcon(res);
+                return res;
+              }}
+              previewing={previewMutation.isPending}
+              previewValue={previewIcon}
+              titleForFallback={form.title}
+              maxKB={200}
+              onClear={() => {
+                setForm((f) => ({ ...f, icon: "" }));
+                setIconUrlInput("");
+                setPreviewIcon(undefined);
+              }}
+            />
+          </Stack>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="ghost" mr={3} onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            colorScheme="brand"
+            onClick={handleSubmit}
+            isDisabled={titleEmpty || urlEmpty || previewMutation.isPending}
           >
-            <MenuItem value="_self">Same Tab</MenuItem>
-            <MenuItem value="_blank">New Tab</MenuItem>
-          </TextField>
-          <TextField
-            label="Optional Category for filtering"
-            name="category"
-            value={form.category}
-            onChange={handleChange}
-            fullWidth
-          />
-          <IconPicker
-            mode={iconMode}
-            onModeChange={setIconMode}
-            value={iconMode === "upload" ? form.icon ?? "" : iconUrlInput}
-            onChange={(val) => {
-              if (iconMode === "upload") {
-                setForm((f) => ({ ...f, icon: val }));
-              } else {
-                setIconUrlInput(val);
-                setPreviewIcon(undefined); // reset preview when editing URL
-              }
-            }}
-            onPreview={async ({ iconUrl }) => {
-              if (!iconUrl) return;
-              const res = await previewMutation.mutateAsync({
-                iconSourceUrl: iconUrl,
-                url: form.url,
-              });
-              setPreviewIcon(res);
-              return res;
-            }}
-            previewing={previewMutation.isPending}
-            previewValue={previewIcon}
-            titleForFallback={form.title}
-            maxKB={200}
-            onClear={() => {
-              setForm((f) => ({ ...f, icon: "" }));
-              setIconUrlInput("");
-              setPreviewIcon(undefined);
-            }}
-          />
-        </Stack>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button
-          variant="contained"
-          onClick={handleSubmit}
-          disabled={titleEmpty || urlEmpty || previewMutation.isPending}
-        >
-          {previewMutation.isPending ? "Saving..." : "Save"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+            {previewMutation.isPending ? "Saving..." : "Save"}
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
   );
 }

@@ -2,13 +2,15 @@ import React, { useState, useEffect } from "react";
 import {
   Box,
   CircularProgress,
-  Fab,
-  Typography,
   Button,
   Stack,
   Alert,
-} from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
+  Heading,
+  Text,
+  IconButton,
+  useColorModeValue,
+} from "@chakra-ui/react";
+import { MdAdd } from "react-icons/md";
 import {
   useTiles,
   useCreateTile,
@@ -87,31 +89,34 @@ export default function Home() {
   };
 
   return (
-    <Box p={2}>
+    <Box p={4}>
       {offline && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          Offline mode: showing cached tiles. Add/Edit/Delete/Reorder disabled.
+        <Alert status="warning" mb={4} borderRadius="md">
+          <Text>
+            Offline mode: showing cached tiles. Add/Edit/Delete/Reorder
+            disabled.
+          </Text>
         </Alert>
       )}
       <Stack
         direction="row"
         justifyContent="space-between"
         alignItems="center"
-        mb={2}
+        mb={4}
       >
-        <Typography variant="h4">Services</Typography>
+        <Heading size="lg">Services</Heading>
         <Button
-          variant={reorderMode ? "contained" : "outlined"}
-          color={reorderMode ? "secondary" : "inherit"}
+          variant={reorderMode ? "solid" : "outline"}
+          colorScheme={reorderMode ? "brand" : "gray"}
           onClick={() => !offline && setReorderMode((m) => !m)}
-          disabled={offline}
+          isDisabled={offline}
         >
           {reorderMode ? "Finish Reordering" : "Reorder"}
         </Button>
       </Stack>
       {isLoading && !effectiveTiles && <CircularProgress />}
       {isError && !effectiveTiles && (
-        <Typography color="error">Failed to load tiles.</Typography>
+        <Text color="red.400">Failed to load tiles.</Text>
       )}
       {effectiveTiles && (
         <TileGrid
@@ -122,15 +127,19 @@ export default function Home() {
           enableReorder={reorderMode && !offline}
         />
       )}
-      <Fab
-        color="primary"
-        aria-label="add"
-        sx={{ position: "fixed", bottom: 24, right: 24 }}
+      <IconButton
+        aria-label="add tile"
+        colorScheme="brand"
+        icon={<MdAdd />}
+        position="fixed"
+        bottom={6}
+        right={6}
+        borderRadius="full"
+        size="lg"
         onClick={() => !offline && setCreateOpen(true)}
-        disabled={offline}
-      >
-        <AddIcon />
-      </Fab>
+        isDisabled={offline}
+        shadow="md"
+      />
       <TileFormDialog
         open={createOpen}
         onClose={() => setCreateOpen(false)}

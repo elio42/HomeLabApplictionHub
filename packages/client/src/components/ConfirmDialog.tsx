@@ -1,12 +1,14 @@
 import React from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
   Button,
-  Typography,
-} from "@mui/material";
+  Text,
+} from "@chakra-ui/react";
 
 interface Props {
   open: boolean;
@@ -28,17 +30,22 @@ export function ConfirmDialog({
   cancelText = "Cancel",
 }: Props) {
   return (
-    <Dialog open={open} onClose={onCancel}>
-      <DialogTitle>{title}</DialogTitle>
-      <DialogContent>
-        <Typography>{message}</Typography>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onCancel}>{cancelText}</Button>
-        <Button color="error" variant="contained" onClick={onConfirm}>
-          {confirmText}
-        </Button>
-      </DialogActions>
-    </Dialog>
+    <Modal isOpen={open} onClose={onCancel} isCentered>
+      <ModalOverlay />
+      <ModalContent>
+        <ModalHeader>{title}</ModalHeader>
+        <ModalBody>
+          <Text>{message}</Text>
+        </ModalBody>
+        <ModalFooter>
+          <Button mr={3} variant="ghost" onClick={onCancel}>
+            {cancelText}
+          </Button>
+          <Button colorScheme="red" onClick={onConfirm}>
+            {confirmText}
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
   );
 }

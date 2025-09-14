@@ -1,5 +1,5 @@
 import React from "react";
-import { Grid } from "@mui/material";
+import { SimpleGrid } from "@chakra-ui/react";
 import { Tile } from "@hub/shared";
 import { TileCard } from "./TileCard";
 import {
@@ -46,18 +46,17 @@ export function TileGrid({
 
   if (!enableReorder) {
     return (
-      <Grid container spacing={2}>
+      <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4, xl: 6 }} spacing={4}>
         {tiles.map((t) => (
-          <Grid key={t.id} item xs={12} sm={6} md={4} lg={3} xl={2}>
-            <TileCard
-              tile={t}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              reorderMode={false}
-            />
-          </Grid>
+          <TileCard
+            key={t.id}
+            tile={t}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            reorderMode={false}
+          />
         ))}
-      </Grid>
+      </SimpleGrid>
     );
   }
 
@@ -67,18 +66,20 @@ export function TileGrid({
         items={tiles.map((t) => t.id)}
         strategy={rectSortingStrategy}
       >
-        <Grid container spacing={2}>
+        <SimpleGrid
+          columns={{ base: 1, sm: 2, md: 3, lg: 4, xl: 6 }}
+          spacing={4}
+        >
           {tiles.map((t) => (
-            <Grid key={t.id} item xs={12} sm={6} md={4} lg={3} xl={2}>
-              <TileCard
-                tile={t}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                reorderMode
-              />
-            </Grid>
+            <TileCard
+              key={t.id}
+              tile={t}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              reorderMode
+            />
           ))}
-        </Grid>
+        </SimpleGrid>
       </SortableContext>
     </DndContext>
   );
