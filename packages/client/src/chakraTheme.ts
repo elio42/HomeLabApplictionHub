@@ -1,4 +1,5 @@
-import { extendTheme, ThemeConfig } from "@chakra-ui/react";
+import { Box, extendTheme, ThemeConfig } from "@chakra-ui/react";
+import { baseStyle } from "@chakra-ui/react/dist/types/avatar/avatar";
 
 const config: ThemeConfig = {
   initialColorMode: "system",
@@ -7,64 +8,87 @@ const config: ThemeConfig = {
 
 const colors = {
   brand: {
-    50: "#e3f9ff",
-    100: "#c8ecff",
-    200: "#9dd9ff",
-    300: "#6fc4ff",
-    400: "#3aaaff",
-    500: "#0d8fe6",
-    600: "#006fb4",
-    700: "#005180",
-    800: "#00354d",
-    900: "#001c26",
+    50: "#e9f6ff",
+    100: "#d3edff",
+    200: "#a6dcff",
+    300: "#78c9ff",
+    400: "#43b2ff",
+    500: "#1599f2", // primary base
+    600: "#0d76c0",
+    700: "#08548a",
+    800: "#05375a",
+    900: "#02202f",
+  },
+  neutral: {
+    50: "#f3f4f6",
+    100: "#e4e6ea",
+    200: "#ccd0d6",
+    300: "#b1b8c0",
+    400: "#939ca7",
+    500: "#757f8b", // mid gray pivot
+    600: "#5c656f",
+    700: "#444d55",
+    800: "#2e353b",
+    900: "#1c2125",
   },
 };
 
-const radii = {
-  none: "0",
-  sm: "3px",
-  base: "6px",
-  md: "10px",
-  lg: "16px",
-  xl: "24px",
-  "2xl": "32px",
-  full: "9999px",
-};
-
-const fonts = {
-  heading: "Inter, system-ui, sans-serif",
-  body: "Inter, system-ui, sans-serif",
-  mono: "JetBrains Mono, ui-monospace, monospace",
-};
+const fonts = {};
 
 const components = {
   Button: {
-    baseStyle: { borderRadius: "md", fontWeight: 600 },
+    baseStyle: { borderRadius: "full" },
     defaultProps: { colorScheme: "brand", variant: "solid" },
   },
-  Select: {
-    baseStyle: {},
-    variants: {},
-    defaultProps: {},
-    // Chakra's native Select uses the native element; control styles via field
-    // We'll enhance contrast using global styles below
-  },
+  Select: {},
   Tooltip: {
     baseStyle: {
-      borderRadius: "md",
+      borderRadius: "full",
       fontSize: "sm",
       px: 2,
       py: 1,
     },
   },
-  Tag: {
-    baseStyle: { borderRadius: "full", fontWeight: 500 },
-  },
   Modal: {
     baseStyle: {
       dialog: {
-        borderRadius: "lg",
+        borderRadius: "full",
       },
+    },
+  },
+  Card: {
+    baseStyle: {
+      container: {
+        borderWidth: "1px",
+        borderRadius: "lg",
+        boxShadow: "sm",
+        transition: "box-shadow 120ms, transform 120ms",
+        _hover: { boxShadow: "md" },
+        bg: "white",
+        _dark: { bg: "gray.800" },
+      },
+    },
+    variants: {
+      tile: {
+        container: {
+          p: 3,
+          minH: "76px",
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "flex-start",
+          justifyContent: "flex-start",
+          gap: 3,
+        },
+      },
+      flat: {
+        container: {
+          boxShadow: "none",
+          _hover: { boxShadow: "sm" },
+        },
+      },
+    },
+    defaultProps: {
+      variant: "tile",
     },
   },
 };
@@ -72,23 +96,10 @@ const components = {
 export const chakraTheme = extendTheme({
   config,
   colors,
-  radii,
   fonts,
   components,
   styles: {
-    global: (props: any) => ({
-      "select, option": {
-        backgroundColor: "transparent",
-      },
-      option: {
-        color: props.colorMode === "dark" ? "white" : "gray.800",
-        background: props.colorMode === "dark" ? "#1A202C" : "white",
-      },
-      "option:checked, option:hover, option:focus": {
-        background: props.colorMode === "dark" ? "#2D3748" : "gray.100",
-        color: props.colorMode === "dark" ? "white" : "gray.800",
-      },
-    }),
+    global: () => ({}),
   },
   shadows: { outline: "0 0 0 3px rgba(13,143,230,0.5)" },
 });

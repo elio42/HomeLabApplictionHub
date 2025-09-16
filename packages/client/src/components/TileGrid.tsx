@@ -46,7 +46,7 @@ export function TileGrid({
 
   if (!enableReorder) {
     return (
-      <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4, xl: 6 }} spacing={4}>
+      <SimpleGrid minChildWidth="300px" spacing={4}>
         {tiles.map((t) => (
           <TileCard
             key={t.id}
@@ -66,10 +66,7 @@ export function TileGrid({
         items={tiles.map((t) => t.id)}
         strategy={rectSortingStrategy}
       >
-        <SimpleGrid
-          columns={{ base: 1, sm: 2, md: 3, lg: 4, xl: 6 }}
-          spacing={4}
-        >
+        <SimpleGrid minChildWidth="300px" spacing={4}>
           {tiles.map((t) => (
             <TileCard
               key={t.id}

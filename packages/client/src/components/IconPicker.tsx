@@ -3,7 +3,6 @@ import {
   Stack,
   Select,
   Avatar,
-  Tooltip,
   Button,
   Box,
   Text,
@@ -12,7 +11,7 @@ import {
   FormControl,
   FormLabel,
 } from "@chakra-ui/react";
-import { MdUpload } from "react-icons/md";
+import { Md10K, MdDelete, MdDownload, MdUpload } from "react-icons/md";
 
 export type IconMode = "upload" | "url";
 
@@ -164,6 +163,7 @@ export function IconPicker({
           <Button
             variant="outline"
             size="sm"
+            leftIcon={<MdDownload />}
             onClick={() =>
               onPreview?.({ iconUrl: !isDataUrl(value) ? value : undefined })
             }
@@ -180,6 +180,7 @@ export function IconPicker({
         <Button
           variant="outline"
           size="sm"
+          leftIcon={<MdDelete />}
           colorScheme="red"
           onClick={handleClearIcon}
           w="150px"
@@ -262,7 +263,7 @@ export function IconPicker({
                 ? "brand.400"
                 : useColorModeValue("gray.300", "gray.600")
             }
-            borderRadius="md"
+            borderRadius="none"
             bg={
               dragActive
                 ? useColorModeValue("gray.100", "gray.700")

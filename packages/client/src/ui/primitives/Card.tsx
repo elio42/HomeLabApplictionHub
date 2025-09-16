@@ -1,20 +1,23 @@
+import {
+  Card as ChakraCard,
+  CardProps as ChakraCardProps,
+} from "@chakra-ui/react";
 import React from "react";
-import { Box, BoxProps, useColorModeValue } from "@chakra-ui/react";
 
-export const Card: React.FC<BoxProps> = (props) => {
-  const bg = useColorModeValue("white", "gray.800");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
-  return (
-    <Box
-      bg={bg}
-      borderWidth="1px"
-      borderColor={borderColor}
-      borderRadius="lg"
-      p={4}
-      boxShadow="sm"
-      _hover={{ boxShadow: "md" }}
-      transition="box-shadow 120ms"
-      {...props}
+export interface CardProps extends ChakraCardProps {
+  interactive?: boolean;
+}
+
+export const Card = React.forwardRef<HTMLDivElement, CardProps>(
+  ({ interactive, variant, ...rest }, ref) => (
+    <ChakraCard
+      ref={ref}
+      variant={variant || "tile"}
+      {...(interactive && {
+        _hover: { boxShadow: "lg", transform: "translateY(-2px)" },
+      })}
+      {...rest}
     />
-  );
-};
+  )
+);
+Card.displayName = "Card";
