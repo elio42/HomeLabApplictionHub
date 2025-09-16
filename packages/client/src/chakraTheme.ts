@@ -42,6 +42,13 @@ const components = {
     baseStyle: { borderRadius: "md", fontWeight: 600 },
     defaultProps: { colorScheme: "brand", variant: "solid" },
   },
+  Select: {
+    baseStyle: {},
+    variants: {},
+    defaultProps: {},
+    // Chakra's native Select uses the native element; control styles via field
+    // We'll enhance contrast using global styles below
+  },
   Tooltip: {
     baseStyle: {
       borderRadius: "md",
@@ -68,5 +75,20 @@ export const chakraTheme = extendTheme({
   radii,
   fonts,
   components,
+  styles: {
+    global: (props: any) => ({
+      "select, option": {
+        backgroundColor: "transparent",
+      },
+      option: {
+        color: props.colorMode === "dark" ? "white" : "gray.800",
+        background: props.colorMode === "dark" ? "#1A202C" : "white",
+      },
+      "option:checked, option:hover, option:focus": {
+        background: props.colorMode === "dark" ? "#2D3748" : "gray.100",
+        color: props.colorMode === "dark" ? "white" : "gray.800",
+      },
+    }),
+  },
   shadows: { outline: "0 0 0 3px rgba(13,143,230,0.5)" },
 });

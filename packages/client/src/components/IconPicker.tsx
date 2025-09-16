@@ -5,13 +5,14 @@ import {
   Avatar,
   Tooltip,
   Button,
-  IconButton,
   Box,
   Text,
   Input,
   useColorModeValue,
+  FormControl,
+  FormLabel,
 } from "@chakra-ui/react";
-import { MdUpload, MdDelete } from "react-icons/md";
+import { MdUpload } from "react-icons/md";
 
 export type IconMode = "upload" | "url";
 
@@ -115,10 +116,6 @@ export function IconPicker({
 
   const invalidIconUrl = !!(mode === "url" && value && !isHttpUrl(value));
   const ACTION_BUTTON_WIDTH = 150;
-  const ACTION_BUTTON_SX = {
-    textTransform: "none",
-    width: ACTION_BUTTON_WIDTH,
-  };
 
   const getFallbackInitial = (title: string): string => {
     if (!title) return "?";
@@ -127,12 +124,11 @@ export function IconPicker({
   };
 
   return (
-    <Stack spacing={2} mt={1}>
-      {/* Mode Switch */}
-      <Box>
+    <Stack spacing={3} mt={1}>
+      <FormControl>
+        <FormLabel>Icon Source</FormLabel>
         <Select
           value={mode}
-          size="sm"
           onChange={(e) => {
             const next = e.target.value as IconMode;
             onModeChange(next);
@@ -143,7 +139,7 @@ export function IconPicker({
           <option value="upload">Upload</option>
           <option value="url">URL</option>
         </Select>
-      </Box>
+      </FormControl>
 
       {/* Action Buttons (same slot) */}
       <Stack direction="row" spacing={2}>
@@ -209,25 +205,15 @@ export function IconPicker({
             h="64px"
             fontSize="22px"
             fontWeight={600}
-          >
-            {(() => {
+            name={titleForFallback}
+            src={(() => {
               const shown = previewValue || value;
-              if (shown && isDataUrl(shown)) {
-                return (
-                  <img
-                    src={shown}
-                    alt="icon"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "contain",
-                      background: "transparent",
-                    }}
-                  />
-                );
-              }
-              return getFallbackInitial(titleForFallback || "?");
+              if (shown && isDataUrl(shown)) return shown;
+              return undefined;
             })()}
+          >
+            {!((previewValue || value) && isDataUrl(previewValue || value)) &&
+              getFallbackInitial(titleForFallback || "?")}
           </Avatar>
         </Box>
 
@@ -239,7 +225,6 @@ export function IconPicker({
                 placeholder="Icon URL"
                 value={!isDataUrl(value) ? value : ""}
                 onChange={(e) => onChange(e.target.value)}
-                size="sm"
                 isInvalid={invalidIconUrl}
               />
               <Text

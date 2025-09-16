@@ -19,8 +19,8 @@ logs/
 !.env.example
 
 # Database / persistence
-/data/*.db
-/data/*.db-journal
+**/data/*.db
+**/data/*.db-journal
 
 # Prisma
 packages/server/prisma/migrations/**/README.md

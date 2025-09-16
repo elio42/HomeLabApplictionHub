@@ -56,7 +56,6 @@ export function TileCard({ tile, onEdit, onDelete, reorderMode }: Props) {
   const rel = target === "_blank" ? "noopener noreferrer" : undefined;
   const cardBg = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.200", "gray.700");
-
   return (
     <Box
       ref={reorderMode ? setNodeRef : undefined}
@@ -80,30 +79,17 @@ export function TileCard({ tile, onEdit, onDelete, reorderMode }: Props) {
       >
         <Flex p={3} align="center" gap={3} minH="76px">
           <Avatar
-            variant="rounded" // Chakra doesn't have variant prop; harmless custom attr
             bg={useColorModeValue("white", "gray.900")}
             borderWidth="1px"
             borderColor={borderColor}
             color={useColorModeValue("gray.800", "gray.100")}
             fontWeight={600}
-            overflow="hidden"
             w="52px"
             h="52px"
+            src={tile.icon || undefined}
+            name={tile.title}
           >
-            {tile.icon ? (
-              <img
-                src={tile.icon}
-                alt={tile.title}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "contain",
-                  background: "transparent",
-                }}
-              />
-            ) : (
-              getFallbackInitial(tile.title)
-            )}
+            {!tile.icon && getFallbackInitial(tile.title)}
           </Avatar>
           <VStack spacing={0} align="start" flex={1} minW={0}>
             <Text fontSize="sm" fontWeight={600} noOfLines={1}>
